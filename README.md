@@ -55,6 +55,61 @@ A Python-based Fusion 360 automation tool that generates complete, parametric ro
 
 ---
 
+## Our Approach: From CAD Automation to Engineering Automation
+
+### The Core Idea
+
+**"Don't automate the drawing. Automate the design logic behind the drawing."**
+
+The problem statement asks us to automate CAD generation. We go one step further and turn that automation into a small engineering configuration assistant.
+
+### Conventional vs. Our Approach
+
+| Conventional / Basic Approach | Our Approach |
+|------------------------------|--------------|
+| Enter dimensions → generate CAD | Requirements → validate → calculate → generate → verify |
+| Fixed or template-oriented geometry | Rule-based parametric geometry |
+| Manual calculation of repeated components | Automatic roller & support layout calculation |
+| Generate and visually inspect | Generate + automatically verify |
+| Demonstrate predefined configurations | Generate unseen configurations from the same rules |
+| CAD output only | CAD + verification + BOM/configuration information |
+| One-time automation | Reusable configuration engine |
+
+### What Makes This Different
+
+**1. Closed-loop verification — not just generation**
+
+We don't just generate geometry; we verify that the generated geometry satisfies the requested design. After generation, the system checks: generated length → PASS, width → PASS, roller diameter → PASS, roller spacing → PASS, roller count → PASS, support spacing → PASS, guard selection → PASS.
+
+**2. The model understands relationships, not just dimensions**
+
+Instead of "create 12 rollers," our system thinks: L = conveyor length, P = desired roller spacing → calculate number + positions → generate rollers. The geometry is a consequence of the design parameters — not a pre-built template.
+
+**3. Deterministic and repeatable**
+
+Same input → same calculations → same CAD configuration. The tool is deterministic and repeatable, making the configuration process consistent rather than operator-dependent.
+
+**4. Works for unseen configurations**
+
+We are building a reusable generator, not three pre-modeled answers. The tool accepts any valid configuration — even ones it has never seen before — and generates the conveyor from the rules.
+
+**5. Multidisciplinary — mechanical engineering rules + software automation**
+
+The tool encodes real engineering constraints (margins, fit checks, spacing logic) and applies them automatically. The user provides requirements; the system handles the design logic.
+
+### Our Proposed Differentiators
+
+- **Parametric** — geometry is driven by engineering relationships
+- **Intelligent Layout** — component positions calculated from design rules
+- **Self-Validating** — generated results are automatically checked
+- **Reusable Configurations** — works beyond the demonstration cases
+
+### Our One Killer Line
+
+> **"We are not automating CAD clicks — we are automating the engineering logic behind the CAD."**
+
+---
+
 ## Requirements
 
 - **Python 3.8+** (3.13 used in development)
