@@ -373,6 +373,222 @@ Output Files (.f3d + bom_*.csv + bom_*.json)
 
 ---
 
+## How CAD Generation Works (For Fusion Testing)
+
+This section explains what happens when you run the tool — how the CAD gets built, what your teammate in Fusion should expect, and what to look for when testing.
+
+### What This Tool Actually Is
+
+This is **not** a standalone app, not a plugin, and not an API generator. It's a **Python code library** that does two things:
+
+1. **Without Fusion 360:** Validates your config, calculates where every roller and support goes, and writes BOM files (CSV + JSON). This works in any Python.
+2. **With Fusion 360:** Uses Fusion's Python API (`adsk.*` modules) to create actual CAD geometry — sketches, extrudes, bodies — and saves as `.f3d` files. This **only** works inside Fusion 360's Python environment.
+
+### The 3-Stage Pipeline
+
+```
+Your Config (JSON or CLI)
+        |
+        v
+  STAGE 1: VALIDATE                    (runs anywhere)
+  - Check all 8 parameters present
+  - Check each value is in range (L: 800-2000, D: 40-80, etc.)
+  - Check logical rules (rollers fit, supports fit, guards make sense)
+  - If anything fails  -->  clear error message, stop
+  - If all pass        -->  Config object ready to use
+        |
+        v
+  STAGE 2: CALCULATE GEOMETRY          (runs anywhere)
+  - Rollers:  floor((L - 100) / P) + 1   positions at [50, 50+P, 50+2P, ...]
+  - Supports: floor((L - 100) / S) + 1   positions at [50, 50+S, 50+2S, ...]
+  - All calculations are pure math, deterministic (same input = same output)
+        |
+        v
+  STAGE 3: BUILD CAD                   (requires Fusion 360)
+  - Create new Fusion document
+  - Add Fusion Parameters (L, W, H, D, P, S, G)
+  - Build each component using Fusion API calls
+  - Save as .f3d file
+```
+
+### What Happens Inside Fusion (Step by Step)
+
+When you run `generate_all_configs.py` or call `create_assembly()` inside Fusion, here's what Fusion actually does:
+
+**1. Create a new document**
+Fusion makes a blank design file.
+
+**2. Add Parameters**
+Fusion creates 7 named parameters in the document: `L`, `W`, `H`, `D`, `P`, `S`, `G`. These appear in Fusion's **Change Parameters** dialog. They hold the values from your config.
+
+**3. Build the Frame**
+- Fusion adds a 2D sketch on the ground plane (XY)
+- Draws a rectangle: width = L, depth = W
+- Extrude it upward by H mm
+- Names the resulting solid body "Frame"
+- Result: a box L×W×H sitting at the origin
+
+**4. Build the Rollers**
+- For each roller position (calculated in Stage 2):
+  - Add a sketch on the side plane (XZ)
+  - Draw a circle with radius = D/2
+  - Extrude the circle along the conveyor width (Y-axis) by W mm
+  - Name it "Roller_1", "Roller_2", etc.
+  - Move it to its X-position along the conveyor
+- Result: N cylinders running across the conveyor width, evenly spaced
+
+**5. Build the Support Legs**
+- For each support position:
+  - Add a sketch on the ground plane (XY)
+  - Draw a 40×40mm square
+  - Extrude upward by H mm
+  - Name it "Leg_1", "Leg_2", etc.
+  - Move it to its X-position
+- Result: M vertical posts at the floor, spaced along the length
+
+**6. Build Side Guards (if your config has `side_guards: true`)**
+- Left guard: panel at Y = -W/2, size L × G × 5mm
+- Right guard: panel at Y = +W/2, size L × G × 5mm
+- Named "SideGuard_Left" and "SideGuard_Right"
+- If `side_guards: false`, skip this step entirely
+
+**7. Save**
+Fusion saves the document as `conveyor_{L}x{W}x{H}_{D}D_{P}P.f3d` in the `outputs/` folder.
+
+### What Your Teammate Should See in Fusion
+
+After running the tool, open the `.f3d` file in Fusion 360 and check:
+
+**In the Model Tree (browser on the left):**
+```
+XY Plane
+XZ Plane
+  ▶ Sketch (frame rectangle)
+  ▶ Sketch (roller circles)
+  ▶ Sketch (support squares)
+  ▶ Sketch (guard panels, if enabled)
+  ▶ Extrusion (Frame)
+  ▶ Extrusion (Roller_1)
+  ▶ Extrusion (Roller_2)
+  ...
+  ▶ Extrusion (Leg_1)
+  ▶ Extrusion (Leg_2)
+  ...
+  ▶ Extrusion (SideGuard_Left)   [if guards enabled]
+  ▶ Extrusion (SideGuard_Right)  [if guards enabled]
+Parameters
+  ▶ L (1200 mm)
+  ▶ W (450 mm)
+  ▶ H (700 mm)
+  ▶ D (50 mm)
+  ▶ P (100 mm)
+  ▶ S (600 mm)
+  ▶ G (80 mm)
+```
+
+**Bodies in the 3D view:**
+- 1 box (Frame) — the conveyor bed
+- N cylinders (Rollers) — running across the width, spaced evenly
+- M boxes (Legs) — vertical posts at the floor
+- 2 panels (Guards) — on the left and right sides, if enabled
+
+### What to Test
+
+**Test 1: Open and verify**
+1. Generate a config (run `generate_all_configs.py` inside Fusion)
+2. Open the `.f3d` file
+3. Check that all bodies are visible and not hidden
+4. Check the Model Tree shows the right number of rollers, legs, guards
+5. Measure the frame — it should be exactly L × W × H
+
+**Test 2: Count verification**
+| Config | Expect | Check |
+|--------|--------|-------|
+| Small | 8 rollers, 2 legs, 0 guards = 11 total | Count in Model Tree |
+| Medium | 12 rollers, 2 legs, 2 guards = 17 total | Count in Model Tree |
+| Large | 15 rollers, 3 legs, 2 guards = 21 total | Count in Model Tree |
+
+**Test 3: Roller spacing**
+Pick any two adjacent rollers. Measure the distance between their centers along X. It should equal P (roller spacing from your config).
+
+Example: Medium config, P=100. Measure Roller_1 to Roller_2 — should be 100mm.
+
+**Test 4: Support positions**
+Check that supports are at the calculated positions. For medium config (L=1200, S=600), supports at X=50 and X=650.
+
+**Test 5: Guard presence**
+- Small config: no guards (side_guards=false). Verify no SideGuard bodies.
+- Medium/Large: 2 guards. Verify both SideGuard_Left and SideGuard_Right exist.
+
+**Test 6: Try changing a parameter (parametric test)**
+1. In Fusion, go to **Change Parameters**
+2. Change L from 1200 to 1400
+3. Click OK
+4. **What should happen:** The frame should resize, and if the Fusion API wiring is complete, rollers/supports should reposition
+5. **Current state:** The code creates geometry at the correct size but the parametric expressions linking sketch dimensions to Fusion Parameters are not yet fully wired. This means changing parameters in Fusion's UI may not automatically update the geometry — you may need to re-run the generator. This is the main gap and is tracked as a future improvement.
+
+**Test 7: BOM verification**
+Open the CSV in the `outputs/` folder. Check that:
+- Frame quantity = 1
+- Roller quantity matches what you see in Fusion
+- Support quantity matches
+- Guard quantity is 0 or 2 depending on config
+- TOTAL matches the sum
+
+### Common Things That Might Go Wrong in Fusion
+
+| Symptom | Likely Cause | Fix |
+|---------|-------------|-----|
+| Script says "Not running inside Fusion 360" | You ran it from a normal Python terminal, not inside Fusion | Run it inside Fusion's Python console or Scripts & Add-ins |
+| No bodies appear in Fusion | Script ran but geometry creation failed silently | Check Fusion's Python console for error messages |
+| Fewer rollers than expected | Config validation passed but geometry calculation is wrong | Verify L and P values — check the formula: `floor((L-100)/P)+1` |
+| Rollers are the wrong size | D value not passed correctly to the generator | Check the config dict has the right D value |
+| "Parameter X exceeds range" error | Your config value is outside the allowed range | Check the Parameters Reference table in this README |
+| Guards missing when they should be there | `side_guards` is false in the config | Set `side_guards: true` and `G > 0` in your config |
+
+### Quick Start for Your Teammate
+
+```bash
+# 1. Make sure Fusion 360 is open
+
+# 2. Open Fusion's Python console (or Scripts & Add-ins)
+
+# 3. Add the src folder to Python's path
+import sys
+sys.path.append(r"C:\path\to\fusion_conveyor_generator\src")
+
+# 4. Import and create a medium config
+from fusion_generator import create_assembly, create_test_config
+import adsk.core
+
+app = adsk.core.Application.get()
+config = create_test_config(
+    length=1200, width=450, height=700,
+    diameter=50, roller_spacing=100,
+    support_spacing=600, guard_height=80,
+    side_guards=True
+)
+
+# 5. Generate the assembly
+doc = create_assembly(config, app)
+print(f"Created: {doc.name}")
+
+# 6. The .f3d is saved automatically. Open it from the outputs/ folder.
+```
+
+Or even simpler — just run the batch generator:
+
+```python
+# In Fusion's Python console:
+import sys
+sys.path.append(r"C:\path\to\fusion_conveyor_generator")
+exec(open("generate_all_configs.py").read())
+```
+
+This generates all 3 configs at once.
+
+---
+
 ## Parameters Reference
 
 All 8 parameters are required. No defaults.
