@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.pytest_cache
+*.egg-info/
+*.egg
+dist/
+build/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+# Fusion add-in compiled output
+comp/
+# Generated outputs (add back when you want to track them)
+# outputs/*.f3d
+# outputs/bom_*.csv
+# outputs/bom_*.json
