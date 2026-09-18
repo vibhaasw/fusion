@@ -1,0 +1,5 @@
+Component_Type,Quantity,Diameter_or_Height_mm,Notes
+Frame,1,-,Structural rectangular frame
+Roller,8,40.0,Cylindrical rollers at 100.0mm spacing
+Support_Leg,2,500.0,Vertical support legs at 500.0mm spacing
+TOTAL,11,-,Sum of all components

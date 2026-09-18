@@ -1,0 +1,6 @@
+Component_Type,Quantity,Diameter_or_Height_mm,Notes
+Frame,1,-,Structural rectangular frame
+Roller,15,60.0,Cylindrical rollers at 120.0mm spacing
+Support_Leg,3,900.0,Vertical support legs at 700.0mm spacing
+Side_Guard,2,150.0,Optional side guard panels
+TOTAL,21,-,Sum of all components

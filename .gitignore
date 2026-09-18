@@ -16,7 +16,7 @@ Thumbs.db
 *~
 # Fusion add-in compiled output
 comp/
-# Generated outputs (add back when you want to track them)
-# outputs/*.f3d
+# Generated outputs — track BOMs (deliverables), exclude .f3d (Fusion runtime only)
+outputs/*.f3d
 # outputs/bom_*.csv
 # outputs/bom_*.json

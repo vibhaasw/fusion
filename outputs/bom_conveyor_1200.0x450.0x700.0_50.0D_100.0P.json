@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-09-18T05:35:53Z",
+  "configuration": {
+    "L": 1200.0,
+    "W": 450.0,
+    "H": 700.0,
+    "D": 50.0,
+    "P": 100.0,
+    "S": 600.0,
+    "G": 80.0,
+    "side_guards": true
+  },
+  "bill_of_materials": {
+    "frame": {
+      "quantity": 1,
+      "description": "Structural frame"
+    },
+    "rollers": {
+      "quantity": 12,
+      "diameter_mm": 50.0,
+      "spacing_mm": 100.0,
+      "description": "Cylindrical rollers"
+    },
+    "support_legs": {
+      "quantity": 2,
+      "height_mm": 700.0,
+      "spacing_mm": 600.0,
+      "description": "Vertical support legs"
+    },
+    "side_guards": {
+      "quantity": 2,
+      "height_mm": 80.0,
+      "description": "Optional side guards"
+    }
+  },
+  "summary": {
+    "total_components": 17,
+    "total_rollers": 12,
+    "total_supports": 2,
+    "total_guards": 2
+  }
+}
